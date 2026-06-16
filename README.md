@@ -1,8 +1,6 @@
-# moodle-composer-toolkit
+# Moodle + Composer toolkit
 
-Turn any plugin from the [Moodle Plugins directory](https://moodle.org/plugins)
-into a **Composer/Packagist package that auto-updates daily** — so your Moodle
-site can `composer require` plugins and `composer update` delivers new versions.
+Turn any plugin from the Moodle Plugins directory into a Packagist package that auto updates daily, so Moodle sites can manage plugins using Composer.
 
 Works on macOS, Linux and Windows (Git Bash). Needs `curl`, `jq`, `unzip`,
 `git` — the scripts check on start and tell you exactly what's missing.
