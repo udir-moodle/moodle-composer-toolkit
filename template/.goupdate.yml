@@ -1,0 +1,38 @@
+# goupdate config for a moodle-composer-toolkit mirror.
+# Discovers + selects the next published $plugin->version; the wedge
+# (.github/scripts/update.sh) does the download/sync/constraint write.
+
+rules:
+  moodle:
+    manager: moodle
+    include: ["version.php"]
+    format: raw
+    extraction:
+      pattern: "(?m)^\\s*\\$(?P<n>plugin->version)\\s*=\\s*(?P<version>\\d+(?:\\.\\d+)?)"
+    fields:
+      dependencies: prod
+    # version.php IS the lock; without this, goupdate refuses to plan.
+    self_pinning: true
+    incremental:
+      - plugin->version
+    outdated:
+      # Pre-flight rejects inline multi-line bash; delegate to a script.
+      commands: |
+        bash .github/scripts/list-versions.sh
+      format: raw
+      extraction:
+        pattern: "(?P<version>\\d+(?:\\.\\d+)?)"
+      # Moodle date-integer versions are not semver; numeric + incremental
+      # picks the smallest version strictly greater than current.
+      versioning:
+        format: numeric
+        sort: asc
+      exclude_version_patterns:
+        - "(?i)alpha"
+        - "(?i)beta"
+        - "(?i)rc"
+      timeout_seconds: 60
+    update:
+      commands: |
+        bash .github/scripts/update.sh --apply "{{version}}"
+      timeout_seconds: 300

@@ -1,0 +1,54 @@
+# Drop-in goupdate config to SCAN an existing Moodle project against the plugins
+# directory. Copy this file and .goupdate-core-plugins.txt into the project
+# root, then from there:
+#
+#   # contributed/custom plugins with Outdated/UpToDate status (core included):
+#   goupdate outdated -r moodle --skip-preflight
+#
+#   # drop Moodle core, then your own custom plugins, via two pipes:
+#   goupdate outdated -r moodle --skip-preflight \
+#     | grep -vwF -f <(grep -v '^#' .goupdate-core-plugins.txt) \
+#     | grep -vwF -f <(grep -v '^#' .goupdate-custom-plugins.txt)
+#
+# What's left is the mirrorable (in-directory) plugins — Outdated ones are
+# actionable with new.sh. goupdate has no command hook before extraction
+# (package discovery is regex / json-key only — verified in source), so neither
+# core nor custom can be excluded inside the config; the pipes do it instead.
+# .goupdate-custom-plugins.txt = components in version.php that the directory
+# API doesn't have; regenerate it per project.
+#
+# Limitation: goupdate's output can't tell a CUSTOM plugin (not in the
+# directory) from an up-to-date contributed one — both show UpToDate. The
+# clearly-actionable rows are the Outdated ones (a newer version is published).
+# Plugins whose $plugin->component is set dynamically (e.g. "auth_{$dir}") are
+# skipped — the regex only matches literal names. Scan-only: no `update:`.
+
+rules:
+  moodle:
+    manager: moodle
+    include: ["**/version.php"]
+    exclude: ["**/vendor/**", "**/node_modules/**"]
+    format: raw
+    self_pinning: true
+    fields:
+      dependencies: prod
+
+    # version.php sets $plugin->version and $plugin->component on separate lines
+    # in either order. One pattern captures the component (always) plus the
+    # version whether it appears BEFORE (version) or AFTER (version_alt) it —
+    # raw.go falls back to version_alt. [\s\S] is used instead of (?s) because
+    # goupdate's RE2 doesn't honour the inline dotall flag here.
+    extraction:
+      pattern: '(?:\$plugin->version\s*=\s*(?P<version>\d+(?:\.\d+)?)[\s\S]*?)?\$plugin->component\s*=\s*[''"](?P<n>[a-z][a-z0-9]*_[a-z0-9_]+)(?:[''"][\s\S]*?\$plugin->version\s*=\s*(?P<version_alt>\d+(?:\.\d+)?))?'
+
+    # Per-component lookup in the Moodle plugins directory. Downloads the list
+    # once and builds a compact component->versions index in RUNNER_TEMP/tmp,
+    # so subsequent packages are a fast index read (not 16MB re-parse).
+    outdated:
+      commands: |
+        bash -c 'I="${RUNNER_TEMP:-/tmp}/gu-moodle-idx.json"; if [ ! -s "$I" ]; then R="${RUNNER_TEMP:-/tmp}/gu-moodle-raw.json"; [ -s "$R" ] || curl -fsSL -A "MoodleBot/1.0 (+https://moodle.org)" --max-time 180 "https://download.moodle.org/api/1.3/pluglist.php" -o "$R"; jq "[(.plugins//.)[] | select(.component != null) | {(.component): [.versions[].version|tostring]}] | add" "$R" > "$I.tmp" && mv "$I.tmp" "$I"; fi; jq -r --arg c "{{package}}" ".[\$c][]?" "$I" | grep -E "^[0-9]+(\.[0-9]+)?\$" | sort -n'
+      format: raw
+      extraction: { pattern: "(?P<version>\\d+(?:\\.\\d+)?)" }
+      # Moodle $plugin->version is a monotonic date integer, not semver.
+      versioning: { format: numeric, sort: asc }
+      timeout_seconds: 120

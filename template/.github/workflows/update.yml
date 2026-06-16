@@ -1,0 +1,65 @@
+name: Update plugin
+
+# Daily: goupdate picks the next published version, the wedge syncs files,
+# this workflow commits and tags. Packagist publishes from the new tag.
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-plugin
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0           # need full history + tags
+          token: ${{ github.token }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      # Self-heal: if a previous run committed but the tag push failed, tag
+      # the current version now so the next update isn't blocked by it.
+      - name: Ensure the current version is tagged
+        run: |
+          v="$(grep -oE '\$plugin->version[[:space:]]*=[[:space:]]*[0-9]+(\.[0-9]+)?' version.php 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)?' | tail -1 || true)"
+          [ -n "$v" ] || exit 0
+          if ! git rev-parse -q --verify "refs/tags/$v" >/dev/null; then
+            echo "::warning::tag $v was missing for the current version — creating it"
+            git tag "$v"
+            git push origin "refs/tags/$v"
+          fi
+
+      - name: Install goupdate
+        uses: Utdanningsdirektoratet/dit-github-actions/goupdate/install@v1
+        with:
+          github-token: ${{ github.token }}
+
+      - name: Update plugin (goupdate)
+        id: update
+        run: goupdate update -r moodle --yes --incremental
+
+      - if: steps.update.outputs.updated == 'true'
+        name: Commit, tag, push
+        env:
+          TAG: ${{ steps.update.outputs.tag }}
+          COMPONENT: ${{ steps.update.outputs.component }}
+          RELEASE: ${{ steps.update.outputs.release }}
+          VERSION: ${{ steps.update.outputs.version }}
+        run: |
+          git add -A
+          git commit -m "Update $COMPONENT to $RELEASE (version $VERSION)"
+          git tag -a "$TAG" -m "$COMPONENT $RELEASE ($VERSION)"
+          git push origin "HEAD:${{ github.ref_name }}"
+          git push origin "refs/tags/$TAG"

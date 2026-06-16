@@ -1,0 +1,79 @@
+# Custom/private plugins in this project — components NOT in the Moodle
+# plugins directory (and not core), so not mirrorable. Pipe a scan through
+# this list (alongside .goupdate-core-plugins.txt) to leave only the
+# mirrorable contributed plugins:
+#   goupdate outdated -r moodle --skip-preflight \
+#     | grep -vwF -f <(grep -v '^#' .goupdate-core-plugins.txt) \
+#     | grep -vwF -f <(grep -v '^#' .goupdate-custom-plugins.txt)
+# Regenerate per project (components in version.php absent from the API).
+bbbext_simple
+block_bah
+block_digilaer_actest
+block_digilaer_category
+block_digilaer_category_news
+block_digilaer_myprofile
+block_digilaer_privacyonlineclassrooms
+block_dvm_feide
+block_languagecohortselecter
+fake_access
+fake_hooktest
+filter_digilaer_iframetitle
+local_altinn_samtykke
+local_authoauth
+local_clientcheck
+local_custom_email_notification
+local_digilaer_altinn3
+local_digilaer_category
+local_digilaer_encryption
+local_digilaer_feide
+local_digilaer_fo
+local_digilaer_oidc
+local_digilaer_usercleaner
+local_digilaer_userprofile
+local_digilaer_usertours
+local_dvm_feide
+local_dvm_licences
+local_foobar
+local_greenbar
+local_newstudents
+local_one
+local_ordbokimport
+local_sortedadmissions
+local_student_forum_groups
+local_udir_tools
+minilessonitem_audiochat
+minilessonitem_comprehensionquiz
+minilessonitem_conversation
+minilessonitem_dictation
+minilessonitem_dictationchat
+minilessonitem_fiction
+minilessonitem_fluency
+minilessonitem_freespeaking
+minilessonitem_freewriting
+minilessonitem_h5p
+minilessonitem_listeninggapfill
+minilessonitem_listenrepeat
+minilessonitem_multiaudio
+minilessonitem_multichoice
+minilessonitem_page
+minilessonitem_passagegapfill
+minilessonitem_passagereading
+minilessonitem_scatter
+minilessonitem_shortanswer
+minilessonitem_slides
+minilessonitem_smartframe
+minilessonitem_spacegame
+minilessonitem_speakinggapfill
+minilessonitem_speechcards
+minilessonitem_typinggapfill
+minilessonitem_wordshuffle
+mod_adobeconnect
+mod_bah
+profilefield_feidedata
+repository_mahara
+theme_digilaer
+tool_delete_test_data
+watool_ganalytics
+watool_gtagmanager
+watool_guniversal
+watool_matomo
