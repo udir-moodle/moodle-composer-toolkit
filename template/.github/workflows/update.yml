@@ -48,6 +48,8 @@ jobs:
 
       - name: Update plugin (goupdate)
         id: update
+        env:
+          PLUGLIST_URL: ${{ secrets.PLUGLIST_URL }}/local/pluglist/pluglist.php?token=${{ secrets.PLUGLIST_TOKEN }}
         run: goupdate update -r moodle --yes --incremental
 
       - if: steps.update.outputs.updated == 'true'
